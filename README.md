@@ -17,9 +17,6 @@ Please open an issue or message/mention @alanpeabody in the [Elixir Slack](https
 
 JaSerializer development is sponsored by [Agilion](http://www.agilion.com).
 
-Want to work with Elixir and Ember? Agilion is [hiring](http://www.agilion.com/developer)
-remote developers in the Eastern US (no international please).
-
 ## Usage
 
 See [documentation](http://hexdocs.pm/ja_serializer/) on hexdoc for full
@@ -34,7 +31,7 @@ mix.deps
 defp deps do
   [
     # ...
-      {:ja_serializer, "~> 0.9.0"}
+      {:ja_serializer, "~> x.x.x"}
     # ...
   ]
 end
@@ -115,7 +112,7 @@ list of relationships. Each relationship should be a dot separated path.
 
 Example: `include: "author,comments.author"`
 
-The format of this string should exacly match the one specified by the
+The format of this string should exactly match the one specified by the
 [JSON-API spec](http://jsonapi.org/format/#fetching-includes)
 
 Note: If specifying the `include` option, all "default" includes will
@@ -154,13 +151,13 @@ defmodule PhoenixExample.ArticlesController do
 
   def create(conn, %{"data" => data}) do
     attrs = JaSerializer.Params.to_attributes(data)
-    changeset = Article.changeset(%Article{}, attrs) 
+    changeset = Article.changeset(%Article{}, attrs)
     case Repo.insert(changeset) do
-      {:ok, article} -> 
+      {:ok, article} ->
         conn
         |> put_status(201)
         |> render(:show, data: article)
-      {:error, changeset} -> 
+      {:error, changeset} ->
         conn
         |> put_status(422)
         |> render(:errors, data: changeset)
@@ -178,11 +175,29 @@ end
 ```
 
 To use the Phoenix `accepts` plug you must configure Plug to handle the
-"application/vnd.api+json" mime type and Phoenix to serialize json-api with 
+"application/vnd.api+json" mime type and Phoenix to serialize json-api with
 Poison.
 
-Add the following to `config.exs`:
+Depending on your version of Plug add the following to `config.exs`:
 
+Plug ~> "1.2.0"
+```elixir
+config :phoenix, :format_encoders,
+  "json-api": Poison
+
+config :mime, :types, %{
+  "application/vnd.api+json" => ["json-api"]
+}
+```
+
+And then re-compile mime: (per: https://hexdocs.pm/mime/MIME.html)
+
+```shell
+mix deps.clean mime --build
+mix deps.get
+```
+
+Plug < "1.2.0"
 ```elixir
 config :phoenix, :format_encoders,
   "json-api": Poison
@@ -192,15 +207,11 @@ config :plug, :mimes, %{
 }
 ```
 
-
-And then re-compile plug: (per: http://hexdocs.pm/plug/Plug.MIME.html)
+And then re-compile plug: (per: https://hexdocs.pm/plug/1.1.3/Plug.MIME.html)
 
 ```shell
-touch deps/plug/mix.exs
-mix deps.compile plug
-
-# For testing
-MIX_ENV=test mix deps.compile plug
+mix deps.clean plug --build
+mix deps.get
 ```
 
 And then add json api to your plug pipeline.
@@ -223,6 +234,13 @@ pipeline :api do
   plug JaSerializer.ContentTypeNegotiation
   plug JaSerializer.Deserializer
 end
+```
+
+If you're rendering JSON API errors, like `404.json-api`, then you _must_ add `json-api` to the `accepts` of your `render_errors` within your existing configuration in `config.exs`, like so:
+
+```elixir
+config :phoenix, PhoenixExample.Endpoint,
+  render_errors: [view: PhoenixExample.ErrorView, accepts: ~w(html json json-api)]
 ```
 
 ### Testing controllers
@@ -365,7 +383,7 @@ config :ja_serializer,
   key_format: {:custom, MyStringModule, :camelize}
 ```
 
-If you've already compliled your code, be sure to run `mix deps.clean ja_serializer && mix deps.get`
+If you've already compiled your code, be sure to run `mix deps.clean ja_serializer && mix deps.get`
 
 ## Custom Attribute Value Formatters
 

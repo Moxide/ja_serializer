@@ -1,5 +1,52 @@
 # Changelog
 
+## v0.11.1
+* Bugfixes
+  * Handle port numbers in link urls. (@MishaConway)
+* Documentations
+  * Fixes and improvements by @archSeer, @JoshSmith, and @rynam0
+* Misc
+  * Cleaned up Credo reported code inconsistencies
+
+## v0.11.0
+* **Breaking**
+  * The results of JaSerializer.format/4 now returns maps consitently keyed
+    with binaries instead of mixed binaries and atoms. This is not an issue
+    when rendering to json, but any direct testing of format/4 calls may need
+    to be updated. (@bcardarella)
+* Bugfixes
+  * Ensure deep linked `include` query params are correctly rendered. (@KronicDeth)
+  * Use `build_conn/0` instead of `conn/0` in Phoenix test generator (@dustinfarris)
+  * Properly parse nill relationships when de-serializing params (@kaermorchen)
+* Features
+  * adds `:relationships` to serialization opts to skip serializing
+    relationships. Defaults to true. (@bcardarella)
+  * Adds preload/3 hook for preloading relationship data.
+  * Support passing more fields to EctoErrorSerializer (@nurugger07)
+
+## v0.10.1
+* Features
+  * Upgrade Scrivener for Ecto 2.0 & Scrivener support (@avitex)
+* Bugfixes
+  * Fix ecto error serialization for both 2.0 and 1.0 support (@KronicDeth)
+* Deprecations
+  * No longer supports Scrivener 1.x
+
+## v0.10.0
+* Features
+  * There is a full behaviour for serializing, including relationships, with a DSL on top.
+  * Adds type/2 hook for defining the object type.
+* Performance
+  * Scrivener link integration are now faster (@benfalk)
+  * Parsing fields params is now more effecient (@benfalk)
+* Deprecations
+  * Prefer type/2 callback over type/0.
+  * Returning functions from type/0 deprecated if favor of using type/2.
+  * MySerializer.format/3 deprecated in favor of JaSerializer.format/4.
+* Bugfixes
+  * Fix generator imperative assignment warning. (@parndt)
+  * Fix default dsl link imperative assignment warning. (@itsgreggreg)
+
 ## v0.9.0
 * Features
   * Allow type to be set dynamically #94 (@benfalk)

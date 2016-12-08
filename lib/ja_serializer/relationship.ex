@@ -28,43 +28,108 @@ defmodule JaSerializer.Relationship do
   @moduledoc false
 
   defmodule HasMany do
+    @moduledoc """
+    Struct to represent a HasMany relationship.
+
+    The fields are:
+
+      * `serializer`  - A Serializer (often a PhoenixView) implementing the JaSerializer.Serializer behaviour.
+      * `include`     - Should this relationship be included (sideloaded) by default. Overriden by `include` opt to JaSerializer.format/4
+      * `data`        - A list of structs representing the data.
+      * `identifiers` - Should "resource identifiers be included, options are `:when_included` and `:always`. Defaults to `:when_included`
+      * `links`       - A keyword list of links, `self` and `related` are most common.
+      * `name`        - Name of the relationship, automatically set.
+
+    Used when defining relationships without the DSL using the
+    JaSerializer.relationships/2 callback. For example:
+
+        def relationships(article, _conn) do
+          %{
+            comments: %HasMany{
+              serializer:  MyApp.CommentView,
+              include:     true,
+              data:        article.comments,
+            }
+          }
+        end
+
+    See JaSerializer.DSL.has_many/2 for information on defining different types
+    of relationships.
+    """
     defstruct [
-      links:      [],
-      type:       nil,
-      serializer: nil,
-      include:    false,
-      data:       nil
+      links:       [],
+      type:        nil,
+      serializer:  nil,
+      include:     false,
+      data:        nil,
+      identifiers: :when_included,
+      name:        nil
     ]
 
     @doc false
     def from_dsl(name, dsl_opts) do
       %__MODULE__{
-        links:      dsl_opts[:links] || [],
-        type:       dsl_opts[:type],
-        serializer: dsl_opts[:serializer],
-        include:    dsl_opts[:include],
-        data:       dsl_opts[:data] || name
+        links:       dsl_opts[:links] || [],
+        type:        dsl_opts[:type],
+        serializer:  dsl_opts[:serializer],
+        include:     dsl_opts[:include],
+        data:        dsl_opts[:data] || name,
+        identifiers: dsl_opts[:identifiers] || :when_included,
+        name:        name
       }
     end
   end
 
   defmodule HasOne do
+    @moduledoc """
+    Struct representing a HasOne (or belongs to) relationship.
+
+    The fields are:
+
+      * `serializer`  - A Serializer (often a PhoenixView) implementing the JaSerializer.Serializer behaviour.
+      * `include`     - Should this relationship be included (sideloaded) by default. Overriden by `include` opt to JaSerializer.format/4
+      * `data`        - A struct representing the data for serialization.
+      * `identifiers` - Should "resource identifiers be included, options are `:when_included` and `:always`. Defaults to `:when_included`
+      * `links`       - A keyword list of links, `self` and `related` are most common.
+      * `name`        - Name of the relationship, automatically set.
+
+
+    Used when defining relationships without the DSL using the
+    JaSerializer.relationships/2 callback. For example:
+
+        def relationships(article, _conn) do
+          %{
+            comments: %HasOne{
+              serializer:  MyApp.CommentView,
+              include:     true,
+              data:        article.comments,
+            }
+          }
+        end
+
+    See JaSerializer.DSL.has_many/2 for information on defining different types
+    of relationships.
+    """
     defstruct [
-      links:      [],
-      type:       nil,
-      serializer: nil,
-      include:    false,
-      data:       nil
+      links:       [],
+      type:        nil,
+      serializer:  nil,
+      include:     false,
+      data:        nil,
+      identifiers: :always,
+      name:        nil
     ]
 
     @doc false
     def from_dsl(name, dsl_opts) do
       %__MODULE__{
-        links:      dsl_opts[:links] || [],
-        type:       dsl_opts[:type],
-        serializer: dsl_opts[:serializer],
-        include:    dsl_opts[:include],
-        data:       dsl_opts[:data] || name
+        links:       dsl_opts[:links] || [],
+        type:        dsl_opts[:type],
+        serializer:  dsl_opts[:serializer],
+        include:     dsl_opts[:include],
+        data:        dsl_opts[:data] || name,
+        identifiers: dsl_opts[:identifiers] || :always,
+        name:        name
       }
     end
   end
@@ -85,7 +150,7 @@ defmodule JaSerializer.Relationship do
     struct
     |> Map.get(rel)
     |> case do
-      %Ecto.Association.NotLoaded{} -> raise @error, rel: rel, name: name
+      %{__struct__: Ecto.Association.NotLoaded} -> raise @error, rel: rel, name: name
       other -> other
     end
   end

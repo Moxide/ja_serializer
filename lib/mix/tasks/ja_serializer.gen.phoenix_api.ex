@@ -7,7 +7,7 @@ if Code.ensure_loaded?(Phoenix) do
     @moduledoc """
     Generates a Phoenix resource.
 
-        mix phoenix.gen.json_api User users name:string age:integer
+        mix ja_serializer.gen.phoenix_api User users name:string age:integer
 
     The first argument is the module name followed by
     its plural name (used for resources and schema).
@@ -54,25 +54,41 @@ if Code.ensure_loaded?(Phoenix) do
       ]
 
       unless File.exists?("web/views/changeset_view.ex") do
-        Mix.Phoenix.copy_from paths(), "deps/phoenix/priv/templates/phoenix.gen.json", "", binding, [{:eex, "changeset_view.ex", "web/views/changeset_view.ex"}]
+        Mix.Phoenix.copy_from paths(), "priv/templates/phoenix.gen.json", "", binding, [{:eex, "changeset_view.ex", "web/views/changeset_view.ex"}]
       end
 
-      if File.exists?("priv/templates/ja_serializer.gen.phoenix_api/") do
-        Mix.Phoenix.copy_from paths(), "priv/templates/ja_serializer.gen.phoenix_api", "", binding, files
+      Mix.Phoenix.copy_from paths(), "priv/templates/ja_serializer.gen.phoenix_api", "", binding, files
+
+      instructions = compile_instructions(route, binding, refs)
+
+      if opts[:model] != false do
+        Mix.Task.run "phoenix.gen.model", ["--instructions", instructions|args]
       else
-        Mix.Phoenix.copy_from paths(), "deps/ja_serializer/priv/templates/ja_serializer.gen.phoenix_api", "", binding, files
+        Mix.shell.info instructions
       end
+    end
 
-      instructions = """
+    defp paths do
+      [
+        ".",
+        Mix.Project.deps_path |> Path.join("..") |> Path.expand,
+        :ja_serializer,
+        :phoenix
+      ]
+    end
+
+    defp compile_instructions(route, binding, []) do
+      """
 
       Add the resource to your api scope in web/router.ex:
 
           resources "/#{route}", #{binding[:scoped]}Controller, except: [:new, :edit]
 
       """
+    end
 
-      if Enum.count(refs) > 0 do
-      instructions = instructions <> """
+    defp compile_instructions(route, binding, refs) do
+      compile_instructions(route, binding, []) <> """
       Add
 
         + scoped resource in web/router.ex
@@ -84,13 +100,6 @@ if Code.ensure_loaded?(Phoenix) do
         #{inspect(Enum.map(refs, &(&1 <> "s")))}
 
       """
-      end
-
-      if opts[:model] != false do
-        Mix.Task.run "phoenix.gen.model", ["--instructions", instructions|args]
-      else
-        Mix.shell.info instructions
-      end
     end
 
     defp validate_args!([_, plural | _] = args) do
@@ -115,10 +124,6 @@ if Code.ensure_loaded?(Phoenix) do
 
           mix phoenix.gen.json_api User users name:string
       """
-    end
-
-    defp paths do
-      [".", :phoenix]
     end
 
     defp references(attrs) do

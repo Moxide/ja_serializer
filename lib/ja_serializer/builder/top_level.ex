@@ -14,24 +14,34 @@ defmodule JaSerializer.Builder.TopLevel do
       opts = Dict.update(opts, :page, links, &(Dict.merge(&1, links)))
 
       # Extract entries from page object
-      %{context | data: page.entries, opts: opts}
-      |> build
+      build(%{context | data: page.entries, opts: opts})
     end
   end
 
-  def build(context) do
+  def build(%{data: records, conn: conn, serializer: serializer} = context) do
+    opts = normalize_opts(context[:opts])
+    context = context
+              |> Map.put(:opts, opts)
+              |> Map.put(:data, serializer.preload(records, conn, Keyword.get(opts, :include, [])))
+
     data = ResourceObject.build(context)
-    context = Map.put(context, :opts, normalize_opts(context[:opts]))
     %__MODULE__{}
     |> Map.put(:data, data)
-    |> Map.put(:included, Included.build(context, data))
+    |> add_included(context)
     |> add_pagination_links(context)
     |> add_meta(context[:opts][:meta])
   end
 
+  defp add_included(tl, %{opts: opts} = context) do
+    case opts[:relationships] do
+      false -> tl
+      _     -> Map.put(tl, :included, Included.build(context, tl.data))
+    end
+  end
+
   defp add_pagination_links(tl, context) do
     links = pagination_links(context.opts[:page], context)
-    Map.update(tl, :links, links, &(&1++links))
+    Map.update(tl, :links, links, &(&1 ++ links))
   end
 
   defp pagination_links(nil, _), do: []
@@ -62,7 +72,7 @@ defmodule JaSerializer.Builder.TopLevel do
     normalized = path
     |> String.split(".")
     |> normalize_relationship_path
-    |> Keyword.merge(normalized, fn(_k, v1, v2) -> v1 ++ v2 end)
+    |> deep_merge_relationship_paths(normalized)
 
     normalize_relationship_path_list(paths, normalized)
   end
@@ -71,6 +81,9 @@ defmodule JaSerializer.Builder.TopLevel do
   defp normalize_relationship_path([rel_name | remaining]) do
     Keyword.put([], String.to_atom(rel_name), normalize_relationship_path(remaining))
   end
+
+  defp deep_merge_relationship_paths(left, right), do: Keyword.merge(left, right, &deep_merge_relationship_paths/3)
+  defp deep_merge_relationship_paths(_key, left, right), do: deep_merge_relationship_paths(left, right)
 
   defp add_meta(tl, nil), do: tl
   defp add_meta(tl, %{} = meta), do: Map.put(tl, :meta, meta)
